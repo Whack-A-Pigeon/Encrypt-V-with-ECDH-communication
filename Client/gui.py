@@ -1,80 +1,82 @@
-# gui.py
+import sys
+from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QLineEdit, QPushButton, QMessageBox, QFileDialog
+from PyQt6.QtGui import QMovie
 
-from tkinter import Tk, PhotoImage, Label, Entry, Button, messagebox, filedialog
-
-# Encryptiv GUI components
-class EncryptiVGUI:
-
+class EncryptiVGUI(QMainWindow):
     def __init__(self):
+        super().__init__()
+        self.initUI()
 
-        # GUI
-        self.root = Tk()
-        self.root.geometry("400x250")
-        self.root.title("Encrypti V")
-        self.root.resizable(False, False)
+    def initUI(self):
+        self.setWindowTitle("Encrypti V")
+        self.setGeometry(100, 100, 400, 250)
+        self.setFixedSize(400, 250)
 
-        self.backgroundImage = PhotoImage(file = r"C:\Users\whack\OneDrive\Desktop\STUFF\Programming STUFF\Python\Encrypti-V\Client\background.gif")
-        self.backgroundLabel = Label(self.root, image = self.backgroundImage)
-        self.backgroundLabel.place(x=0, y=0, relwidth=1, relheight=1)
-        
-        self.welcomeLabel = Label(self.root, text="Welcome to Encrypti V")
-        self.welcomeLabel.place(x=150, y=30)
-
-        self.usernameLabel = Label(self.root, text="Username:")
-        self.usernameLabel.place(x=50, y=80)
-
-        self.passwordLabel = Label(self.root, text="Password:")
-        self.passwordLabel.place(x=50, y=120)
-
-        self.usernameField = Entry(self.root)
-        self.usernameField.place(x=140, y=80, width=200, height=25)
-        self.passwordField = Entry(self.root, show="*")
-        self.passwordField.place(x=140, y=120, width=200, height=25)
-
-        self.loginButton = Button(self.root, text="Login")
-        self.loginButton.place(x=140, y=160, width=90, height=30)
-        self.registerButton = Button(self.root, text="Register")
-        self.registerButton.place(x=250, y=160, width=90, height=30)
-        self.encryptFileButton = Button(self.root, text="Encrypt")
-        self.decryptFileButton = Button(self.root, text="Decrypt")
-
-        # Hide encrypt and decrypt button initially
+        self.setBackground()
+        self.createLabels()
+        self.createButtons()
         self.hideComponents(1)
-    
-    # Function to display a message dialog
-    def showMessage(self, message):
-        messagebox.showinfo("Message", message)
 
-    # Function to hide components
+    def setBackground(self):
+        self.backgroundLabel = QLabel(self)
+        self.movie = QMovie("Client/background.gif")
+        self.movie.setSpeed(25)
+        self.backgroundLabel.setMovie(self.movie)
+        self.movie.start()
+        self.backgroundLabel.setGeometry(0, 0, 400, 250)
+
+    def createLabels(self):
+        self.welcomeLabel = self.createLabel("Welcome to Encrypti V", 150, 30, 200, 20)
+        self.usernameLabel = self.createLabel("Username:", 50, 80, 80, 20)
+        self.passwordLabel = self.createLabel("Password:", 50, 120, 80, 20)
+
+    def createLabel(self, text, x, y, width, height):
+        label = QLabel(text, self)
+        label.setGeometry(x, y, width, height)
+        return label
+
+    def createButtons(self):
+        self.usernameField = self.createTextField(140, 80, 200, 25)
+        self.passwordField = self.createTextField(140, 120, 200, 25, True)
+        self.loginButton = self.createButton("Login", 140, 160, 90, 30)
+        self.registerButton = self.createButton("Register", 250, 160, 90, 30)
+        self.encryptFileButton = self.createButton("Encrypt", 100, 110, 90, 30)
+        self.decryptFileButton = self.createButton("Decrypt", 210, 110, 90, 30)
+
+    def createTextField(self, x, y, width, height, password=False):
+        field = QLineEdit(self)
+        field.setGeometry(x, y, width, height)
+        if password:
+            field.setEchoMode(QLineEdit.EchoMode.Password)
+        return field
+
+    def createButton(self, text, x, y, width, height):
+        button = QPushButton(text, self)
+        button.setGeometry(x, y, width, height)
+        return button
+
     def hideComponents(self, button_id):
-        
         if button_id == 1:
-            self.encryptFileButton.place_forget()
-            self.decryptFileButton.place_forget()
+            for widget in [self.encryptFileButton, self.decryptFileButton]:
+                widget.hide()
+        elif button_id == 2:
+            widgets_to_hide = [
+                self.usernameLabel, self.usernameField,
+                self.passwordLabel, self.passwordField,
+                self.loginButton, self.registerButton, self.welcomeLabel
+            ]
+            for widget in widgets_to_hide:
+                widget.hide()
 
-        if button_id == 2:
+    def showMessage(self, message):
+        QMessageBox.information(self, "Message", message)
 
-            # Buttons to be hidden
-            fields = [self.usernameLabel, self.usernameField, self.passwordLabel, self.passwordField, self.loginButton, self.registerButton, self.welcomeLabel]
-            
-            self.welcomeLabel
-            for field in fields:
-                field.place_forget()
-            
-    
-    # Function for showing the Encrypt and Decrypt buttons
     def showButtons(self):
-        self.encryptFileButton.place(x=100, y=110, width=90, height=30)
-        self.decryptFileButton.place(x=210, y=110, width=90, height=30)
+        for widget in [self.encryptFileButton, self.decryptFileButton]:
+            widget.show()
 
-    # Function to open dialog to pick file
     def pickFile(self):
-        return filedialog.askopenfilename()
+        return QFileDialog.getOpenFileName(self, "Pick a file")
 
-    # Function to open a directory picker dialog
     def pickDir(self):
-        return filedialog.askdirectory()
-
-
-    def run(self):
-        self.root.mainloop()
+        return QFileDialog.getExistingDirectory(self, "Pick a directory")

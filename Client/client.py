@@ -1,84 +1,73 @@
-# client.py (main)
-
-from tkinter import BooleanVar, Toplevel, Checkbutton, Button
+import sys
+import socket
+from PyQt6.QtWidgets import QApplication, QDialog, QCheckBox, QPushButton, QMessageBox
 from gui import EncryptiVGUI
 from communication import communication_with_ECDH
 from authorize_user import login
 from register import registerButtonClicked as register
 from encrypt import performEncryption
 from decrypt import performDecryption
-import socket
 
 # Choose file to Encrypt
-def encryptFile():
-    
-    # Select file to Encrypt
-    selectedFile = gui.pickFile()
-    if selectedFile is None:
-        return
-    encryptDialog = Toplevel(gui.root)
-    encryptDialog.title("Encryption Options")
-    encryptDialog.geometry("300x150")
+def encryptFile(window, comm, client_socket):
+    selectedFile, _ = window.pickFile()
+    if selectedFile:
+        encryptDialog = QDialog(window)
+        encryptDialog.setWindowTitle("Encryption Options")
+        encryptDialog.setGeometry(100, 100, 300, 150)
 
-    createNewName = BooleanVar()
-    saveInNewLocation = BooleanVar()
+        createNewName = QCheckBox("Change File Name", encryptDialog)
+        saveInNewLocation = QCheckBox("Save in New Location", encryptDialog)
 
-    # If clicked, createNewName value becomes 1 or True else 0 or False
-    createNewNameCheckBox = Checkbutton(encryptDialog, text="Change File Name", variable=createNewName)
-    # If clicked, saveInNewLocation value becomes 1 or True else 0 or False
-    saveInNewLocationCheckBox = Checkbutton(encryptDialog, text="Save in New Location", variable=saveInNewLocation)
+        encryptButton = QPushButton("Encrypt", encryptDialog)
+        encryptButton.clicked.connect(lambda: performEncryption(window, comm, client_socket, selectedFile, encryptDialog, createNewName.isChecked(), saveInNewLocation.isChecked(), window.usernameField.text(), window.passwordField.text()))
 
-    # On clicking the button, selected file, dialog box, values of createNewName and saveInNewLocation get sent to performEncryption function
-    encryptButton = Button(encryptDialog, text="Encrypt", command=lambda: performEncryption(gui, comm, client_socket, selectedFile, encryptDialog, createNewName.get(), saveInNewLocation.get(), gui.usernameField.get(), gui.passwordField.get()))
-    
-    # Destroys the dialog box
-    cancelButton = Button(encryptDialog, text="Cancel", command=encryptDialog.destroy)
+        cancelButton = QPushButton("Cancel", encryptDialog)
+        cancelButton.clicked.connect(encryptDialog.reject)
 
-    createNewNameCheckBox.pack()
-    saveInNewLocationCheckBox.pack()
-    encryptButton.pack()
-    cancelButton.pack()
+        createNewName.move(10, 10)
+        saveInNewLocation.move(10, 40)
+        encryptButton.move(50, 80)
+        cancelButton.move(160, 80)
+
+        encryptDialog.exec()
 
 # Choose file to decrypt
-def decryptFile():
-    
-    # Pick file to decrypt
-    selectedFile = gui.pickFile()
-    if selectedFile is None:
-        return
-    
-    # Read file
-    with open(selectedFile, "rb") as file:
-        cipher = file.read()
-    
-    # Perform decryption on file
-    performDecryption(gui, comm, client_socket, gui.usernameField.get(), gui.passwordField.get(), selectedFile, cipher[:32], cipher[32:]) 
-    
-    
+def decryptFile(window, comm, client_socket):
+    selectedFile, _ = window.pickFile()
+    if selectedFile:
+        try:
+            with open(selectedFile, "rb") as file:
+                cipher = file.read()
+            performDecryption(window, comm, client_socket, window.usernameField.text(), window.passwordField.text(), selectedFile, cipher[:32], cipher[32:])
+        except Exception as e:
+            QMessageBox.critical(window, "Error", f"Error occurred while decrypting: {str(e)}")
+
 # Create a socket for the client
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
+    try:
+        # Connect to the server
+        client_socket.connect(("localhost", 12345))
 
-    # Connect to the server
-    client_socket.connect(("localhost", 12345))
+        # Create an instance of QApplication
+        app = QApplication(sys.argv)
 
-    # Create an instance of gui
-    gui = EncryptiVGUI()
+        # Create an instance of EncryptiVGUI
+        window = EncryptiVGUI()
 
-    # Create an instance of communication
-    comm = communication_with_ECDH(client_socket)
+        # Create an instance of communication
+        comm = communication_with_ECDH(client_socket)
 
-    # Give functionality to login and register buttons
-    gui.loginButton.config(command = lambda: login(gui, comm, client_socket, gui.usernameField.get(), gui.passwordField.get()))
-    gui.registerButton.config(command = lambda: register(gui, comm, client_socket, gui.usernameField.get(), gui.passwordField.get()))
+        # Connect login and register buttons to functions
+        window.loginButton.clicked.connect(lambda: login(window, comm, client_socket, window.usernameField.text(), window.passwordField.text()))
+        window.registerButton.clicked.connect(lambda: register(window, comm, client_socket, window.usernameField.text(), window.passwordField.text()))
 
-    # Give functionality to encrypt and decrypt button
-    gui.encryptFileButton.config(command = lambda: encryptFile())
-    gui.decryptFileButton.config(command = lambda: decryptFile())
+        # Connect encrypt and decrypt buttons to functions
+        window.encryptFileButton.clicked.connect(lambda: encryptFile(window, comm, client_socket))
+        window.decryptFileButton.clicked.connect(lambda: decryptFile(window, comm, client_socket))
 
+        window.show()
+        sys.exit(app.exec())
 
-    # Run the tkinter window
-    gui.run()
-
-
-
-
+    except Exception as e:
+        print(f"An error occurred: {e}")
