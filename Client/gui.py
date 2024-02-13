@@ -26,13 +26,17 @@ class EncryptiVGUI(QMainWindow):
         self.backgroundLabel.setGeometry(0, 0, 400, 250)
 
     def createLabels(self):
-        self.welcomeLabel = self.createLabel("Welcome to Encrypti V", 150, 30, 200, 20)
+        self.welcomeLabel = self.createLabel("Welcome to Encrypti V", 90, 30, 250, 20, 16)
         self.usernameLabel = self.createLabel("Username:", 50, 80, 80, 20)
         self.passwordLabel = self.createLabel("Password:", 50, 120, 80, 20)
 
-    def createLabel(self, text, x, y, width, height):
+    def createLabel(self, text, x, y, width, height, font_size=None):
         label = QLabel(text, self)
         label.setGeometry(x, y, width, height)
+        if font_size:
+            label.setStyleSheet(f"font-size: {font_size}pt; color: white; font-weight: bold;")
+        else:
+            label.setStyleSheet("color: white; font-weight: bold;")
         return label
 
     def createButtons(self):
