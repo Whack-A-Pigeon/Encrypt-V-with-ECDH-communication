@@ -1,23 +1,29 @@
 # communication.py (server)
 
-from ecdh import generate_ephemeral_key, serialize_key, deserialize_key, derive_shared_secret, encrypt, decrypt
+from aes256_gcm import encrypt, decrypt
+import ecdh
+from kyber1024 import Kyber
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.backends import default_backend
 
 class communication_with_ECDH:
 
     # Generate secret_shared_key
     def __init__(self, server_socket):
+
         # Generate ephemeral server keys
-        self.server_ephemeral_private_key, self.server_ephemeral_public_key = generate_ephemeral_key()
+        self.kyber_public_key_server, self.kyber_secret_key_server = Kyber().keygen() # Kyber Key Generation
+        self.ecdh_private_key_server, self.ecdh_public_key_server = ecdh.keygen() # ECDH Key Generation
 
         # Send the server's ephemeral public key to the client
-        server_socket.sendall(serialize_key(self.server_ephemeral_public_key))
+        server_socket.sendall(self.ecdh_public_key_server)
 
         # Receive the client's ephemeral public key
-        self.client_ephemeral_public_key_data = server_socket.recv(1024)
-        self.client_ephemeral_public_key = deserialize_key(self.client_ephemeral_public_key_data)
+        self.ecdh_public_key_client = server_socket.recv(1024)
 
         # Derive shared secret using ECDH
-        self.shared_secret = derive_shared_secret(self.server_ephemeral_private_key, self.client_ephemeral_public_key)
+        self.ecdh_shared_secret = ecdh.derive_shared_secret(self.ecdh_private_key_server, self.ecdh_public_key_client) # Shared Secret Derivation
+        self.shared_secret = self.hashed_secret(self.ecdh_shared_secret)
 
     # Function to encrypt and send message to client
     def send_message(self, server_socket, message):
@@ -26,10 +32,14 @@ class communication_with_ECDH:
         server_socket.sendall(encrypted_response)
 
     # Function to recieve and decrypt message from client
-    def recieve_message(self, server_socket):
-        
+    def recieve_message(self, server_socket):        
         encrypted_message = server_socket.recv(1024)
         iv, tag, cipher = encrypted_message[:16], encrypted_message[16:32], encrypted_message[32:]
         decrypted_message = decrypt(self.shared_secret, iv, tag, cipher)
 
         return decrypted_message.decode()
+
+    def hashed_secret(self, secret):
+        hasher = hashes.Hash(hashes.SHA256(), backend=default_backend())
+        hasher.update(secret)
+        return hasher.finalize()
