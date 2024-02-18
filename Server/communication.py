@@ -25,14 +25,14 @@ class communication_with_ECDH:
 
         # Kyber Public Key Exchange
         self.send_message(server_socket, self.kyber_public_key_server, False)
-        self.kyber_public_key_client = self.recieve_message(server_socket, False)
+        self.kyber_public_key_client = self.receive_message(server_socket, False)
 
         # Kyber Key Encapsulation
         self.cipher_server, self.kyber_shared_secret_server = Kyber().enc(self.kyber_public_key_client)
 
         # Kyber Cipher Exchange
         self.send_message(server_socket, self.cipher_server, False)
-        self.cipher_client = self.recieve_message(server_socket, False)
+        self.cipher_client = self.receive_message(server_socket, False)
 
         # Kyber Key Decapsulation
         self.kyber_shared_secret_client = Kyber().dec(self.cipher_client, self.kyber_secret_key_server)
@@ -46,8 +46,8 @@ class communication_with_ECDH:
         encrypted_response = iv + tag + cipher
         socket.sendall(encrypted_response)
 
-    # Function to recieve and decrypt message from client
-    def recieve_message(self, socket, string=True):
+    # Function to receive and decrypt message from client
+    def receive_message(self, socket, string=True):
         encrypted_message = socket.recv(4096)
         iv, tag, cipher = encrypted_message[:16], encrypted_message[16:32], encrypted_message[32:]
         decrypted_message = decrypt(self.shared_secret, iv, tag, cipher)
