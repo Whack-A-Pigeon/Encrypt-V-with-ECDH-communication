@@ -2,7 +2,7 @@ import sys
 import socket
 from PyQt6.QtWidgets import QApplication, QDialog, QCheckBox, QPushButton, QMessageBox
 from gui import EncryptiVGUI
-from communication import communication_with_ECDH
+from communication import Communication
 from authorize_user import login
 from register import registerButtonClicked as register
 from encrypt import performEncryption
@@ -56,7 +56,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
         window = EncryptiVGUI()
 
         # Create an instance of communication
-        comm = communication_with_ECDH(client_socket)
+        comm = Communication(client_socket)
 
         # Connect login and register buttons to functions
         window.loginButton.clicked.connect(lambda: login(window, comm, client_socket, window.usernameField.text(), window.passwordField.text()))

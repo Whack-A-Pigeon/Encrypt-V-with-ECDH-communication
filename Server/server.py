@@ -1,4 +1,4 @@
-from communication import communication_with_ECDH
+from communication import Communication
 from database import connectToDatabase
 from checkLogin import Authorize
 from registration import registerUser
@@ -10,7 +10,7 @@ import threading
 # Function to handle each client connection
 def handle_client(client_socket, address, connection):
     # Intialize comms object
-    comm = communication_with_ECDH(client_socket)
+    comm = Communication(client_socket)
     
     try:
         while True:

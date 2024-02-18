@@ -6,7 +6,7 @@ from kyber1024 import Kyber
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.backends import default_backend
 
-class communication_with_ECDH:
+class Communication:
 
     # Generate secret_shared_key
     def __init__(self, server_socket):
