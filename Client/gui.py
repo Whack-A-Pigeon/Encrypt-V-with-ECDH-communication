@@ -1,6 +1,6 @@
 import sys
 from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QLineEdit, QPushButton, QMessageBox, QFileDialog
-from PyQt6.QtGui import QMovie
+from PyQt6.QtGui import QGuiApplication, QMovie
 
 class EncryptiVGUI(QMainWindow):
     def __init__(self):
@@ -9,7 +9,8 @@ class EncryptiVGUI(QMainWindow):
 
     def initUI(self):
         self.setWindowTitle("Encrypti V")
-        self.setGeometry(100, 100, 400, 250)
+        screen_res = QGuiApplication.primaryScreen().availableGeometry().size()
+        self.setGeometry(screen_res.width() // 2 - 200, screen_res.height() // 2 - 125, 400, 250)
         self.setFixedSize(400, 250)
 
         self.setBackground()
