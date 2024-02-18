@@ -11,33 +11,48 @@ class communication_with_ECDH:
     # Generate secret_shared_key
     def __init__(self, server_socket):
 
-        # Generate ephemeral server keys
+        # Generate server keys
         self.kyber_public_key_server, self.kyber_secret_key_server = Kyber().keygen() # Kyber Key Generation
         self.ecdh_private_key_server, self.ecdh_public_key_server = ecdh.keygen() # ECDH Key Generation
 
-        # Send the server's ephemeral public key to the client
+        # ECDH Public Key Exchange
         server_socket.sendall(self.ecdh_public_key_server)
-
-        # Receive the client's ephemeral public key
         self.ecdh_public_key_client = server_socket.recv(1024)
 
         # Derive shared secret using ECDH
-        self.ecdh_shared_secret = ecdh.derive_shared_secret(self.ecdh_private_key_server, self.ecdh_public_key_client) # Shared Secret Derivation
+        self.ecdh_shared_secret = ecdh.derive_shared_secret(self.ecdh_private_key_server, self.ecdh_public_key_client)
         self.shared_secret = self.hashed_secret(self.ecdh_shared_secret)
 
+        # Kyber Public Key Exchange
+        self.send_message(server_socket, self.kyber_public_key_server, False)
+        self.kyber_public_key_client = self.recieve_message(server_socket, False)
+
+        # Kyber Key Encapsulation
+        self.cipher_server, self.kyber_shared_secret_server = Kyber().enc(self.kyber_public_key_client)
+
+        # Kyber Cipher Exchange
+        self.send_message(server_socket, self.cipher_server, False)
+        self.cipher_client = self.recieve_message(server_socket, False)
+
+        # Kyber Key Decapsulation
+        self.kyber_shared_secret_client = Kyber().dec(self.cipher_client, self.kyber_secret_key_server)
+        
+        # Updating shared secret (ECDHE+Kyber)
+        self.shared_secret = self.hashed_secret(self.ecdh_shared_secret + self.kyber_shared_secret_client + self.kyber_shared_secret_server)
+
     # Function to encrypt and send message to client
-    def send_message(self, server_socket, message):
-        iv, tag, cipher = encrypt(self.shared_secret, message.encode())
+    def send_message(self, socket, message, string=True):        
+        iv, tag, cipher = encrypt(self.shared_secret, message.encode() if string else message)
         encrypted_response = iv + tag + cipher
-        server_socket.sendall(encrypted_response)
+        socket.sendall(encrypted_response)
 
     # Function to recieve and decrypt message from client
-    def recieve_message(self, server_socket):        
-        encrypted_message = server_socket.recv(1024)
+    def recieve_message(self, socket, string=True):
+        encrypted_message = socket.recv(4096)
         iv, tag, cipher = encrypted_message[:16], encrypted_message[16:32], encrypted_message[32:]
         decrypted_message = decrypt(self.shared_secret, iv, tag, cipher)
 
-        return decrypted_message.decode()
+        return decrypted_message.decode() if string else decrypted_message
 
     def hashed_secret(self, secret):
         hasher = hashes.Hash(hashes.SHA256(), backend=default_backend())
